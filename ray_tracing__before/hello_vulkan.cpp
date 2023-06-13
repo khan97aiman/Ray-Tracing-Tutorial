@@ -566,3 +566,14 @@ void HelloVulkan::drawPost(VkCommandBuffer cmdBuf)
 
   m_debug.endLabel(cmdBuf);
 }
+
+//--------------------------------------------------------------------------------------------------
+// Initialize Vulkan ray tracing
+// #VKRay
+void HelloVulkan::initRayTracing()
+{
+  // Requesting ray tracing properties
+  VkPhysicalDeviceProperties2 prop2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+  prop2.pNext = &m_rtProperties;
+  vkGetPhysicalDeviceProperties2(m_physicalDevice, &prop2);
+}
