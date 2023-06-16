@@ -169,6 +169,8 @@ int main(int argc, char** argv)
 
   // #VKRay
   helloVk.initRayTracing();
+  helloVk.createBottomLevelAS();
+  helloVk.createTopLevelAS();
 
   helloVk.createPostDescriptor();
   helloVk.createPostPipeline();
