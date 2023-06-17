@@ -718,7 +718,6 @@ void HelloVulkan::createRtPipeline()
   {
     eRaygen,
     eMiss,
-    eMiss2,
     eClosestHit,
     eShaderGroupCount
   };
@@ -735,16 +734,10 @@ void HelloVulkan::createRtPipeline()
   stage.module = nvvk::createShaderModule(m_device, nvh::loadFile("spv/raytrace.rmiss.spv", true, defaultSearchPaths, true));
   stage.stage   = VK_SHADER_STAGE_MISS_BIT_KHR;
   stages[eMiss] = stage;
-  // The second miss shader is invoked when a shadow ray misses the geometry. It simply indicates that no occlusion has been found
-  stage.module =
-      nvvk::createShaderModule(m_device, nvh::loadFile("spv/raytraceShadow.rmiss.spv", true, defaultSearchPaths, true));
-  stage.stage    = VK_SHADER_STAGE_MISS_BIT_KHR;
-  stages[eMiss2] = stage;
   // Hit Group - Closest Hit
   stage.module = nvvk::createShaderModule(m_device, nvh::loadFile("spv/raytrace.rchit.spv", true, defaultSearchPaths, true));
   stage.stage         = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
   stages[eClosestHit] = stage;
-
 
   // Shader groups
   VkRayTracingShaderGroupCreateInfoKHR group{VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR};
@@ -761,11 +754,6 @@ void HelloVulkan::createRtPipeline()
   // Miss
   group.type          = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
   group.generalShader = eMiss;
-  m_rtShaderGroups.push_back(group);
-
-  // Shadow Miss
-  group.type          = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
-  group.generalShader = eMiss2;
   m_rtShaderGroups.push_back(group);
 
   // closest hit shader
@@ -790,32 +778,20 @@ void HelloVulkan::createRtPipeline()
 
   vkCreatePipelineLayout(m_device, &pipelineLayoutCreateInfo, nullptr, &m_rtPipelineLayout);
 
-
   // Assemble the shader stages and recursion depth info into the ray tracing pipeline
   VkRayTracingPipelineCreateInfoKHR rayPipelineInfo{VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR};
   rayPipelineInfo.stageCount = static_cast<uint32_t>(stages.size());  // Stages are shaders
   rayPipelineInfo.pStages    = stages.data();
 
-  // In this case, m_rtShaderGroups.size() == 4: we have one raygen group,
-  // two miss shader groups, and one hit group.
+  // In this case, m_rtShaderGroups.size() == 3: we have one raygen group,
+  // one miss shader group, and one hit group.
   rayPipelineInfo.groupCount = static_cast<uint32_t>(m_rtShaderGroups.size());
   rayPipelineInfo.pGroups    = m_rtShaderGroups.data();
 
-  // The ray tracing process can shoot rays from the camera, and a shadow ray can be shot from the
-  // hit points of the camera rays, hence a recursion level of 2. This number should be kept as low
-  // as possible for performance reasons. Even recursive ray tracing should be flattened into a loop
-  // in the ray generation to avoid deep recursion.
-  rayPipelineInfo.maxPipelineRayRecursionDepth = 2;  // Ray depth
+  rayPipelineInfo.maxPipelineRayRecursionDepth = 1;  // Ray depth
   rayPipelineInfo.layout                       = m_rtPipelineLayout;
 
   vkCreateRayTracingPipelinesKHR(m_device, {}, {}, 1, &rayPipelineInfo, nullptr, &m_rtPipeline);
-
-
-  // Spec only guarantees 1 level of "recursion". Check for that sad possibility here.
-  if(m_rtProperties.maxRayRecursionDepth <= 1)
-  {
-    throw std::runtime_error("Device fails to support ray recursion (m_rtProperties.maxRayRecursionDepth <= 1)");
-  }
 
   for(auto& s : stages)
     vkDestroyShaderModule(m_device, s.module, nullptr);
@@ -826,9 +802,9 @@ void HelloVulkan::createRtPipeline()
 // - getting all shader handles and write them in a SBT buffer
 // - Besides exception, this could be always done like this
 //
-void HelloVulkan::createRtShaderBindingTable()
+void HelloVulkan::createRtShaderBindingTable() 
 {
-  uint32_t missCount{2};
+  uint32_t missCount{1};
   uint32_t hitCount{1};
   auto     handleCount = 1 + missCount + hitCount;
   uint32_t handleSize  = m_rtProperties.shaderGroupHandleSize;
@@ -871,9 +847,11 @@ void HelloVulkan::createRtShaderBindingTable()
   auto*    pSBTBuffer = reinterpret_cast<uint8_t*>(m_alloc.map(m_rtSBTBuffer));
   uint8_t* pData{nullptr};
   uint32_t handleIdx{0};
+
   // Raygen
   pData = pSBTBuffer;
   memcpy(pData, getHandle(handleIdx++), handleSize);
+
   // Miss
   pData = pSBTBuffer + m_rgenRegion.size;
   for(uint32_t c = 0; c < missCount; c++)
@@ -881,6 +859,7 @@ void HelloVulkan::createRtShaderBindingTable()
     memcpy(pData, getHandle(handleIdx++), handleSize);
     pData += m_missRegion.stride;
   }
+
   // Hit
   pData = pSBTBuffer + m_rgenRegion.size + m_missRegion.size;
   for(uint32_t c = 0; c < hitCount; c++)
@@ -891,4 +870,31 @@ void HelloVulkan::createRtShaderBindingTable()
 
   m_alloc.unmap(m_rtSBTBuffer);
   m_alloc.finalizeAndReleaseStaging();
+}
+
+//--------------------------------------------------------------------------------------------------
+// Ray Tracing the scene
+//
+void HelloVulkan::raytrace(const VkCommandBuffer& cmdBuf, const nvmath::vec4f& clearColor)
+{
+  m_debug.beginLabel(cmdBuf, "Ray trace");
+  // Initializing push constant values
+  m_pcRay.clearColor     = clearColor;
+  m_pcRay.lightPosition  = m_pcRaster.lightPosition;
+  m_pcRay.lightIntensity = m_pcRaster.lightIntensity;
+  m_pcRay.lightType      = m_pcRaster.lightType;
+
+  std::vector<VkDescriptorSet> descSets{m_rtDescSet, m_descSet};
+  vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipeline);
+  vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipelineLayout, 0,
+                          (uint32_t)descSets.size(), descSets.data(), 0, nullptr);
+  vkCmdPushConstants(cmdBuf, m_rtPipelineLayout,
+                     VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
+                     0, sizeof(PushConstantRay), &m_pcRay);
+
+
+  vkCmdTraceRaysKHR(cmdBuf, &m_rgenRegion, &m_missRegion, &m_hitRegion, &m_callRegion, m_size.width, m_size.height, 1);
+
+
+  m_debug.endLabel(cmdBuf);
 }
