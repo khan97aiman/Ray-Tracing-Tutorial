@@ -590,6 +590,12 @@ void HelloVulkan::initRayTracing()
   vkGetPhysicalDeviceProperties2(m_physicalDevice, &prop2);
 
   m_rtBuilder.setup(m_device, &m_alloc, m_graphicsQueueIndex);
+
+  // Spec only guarantees 1 level of "recursion". Check for that sad possibility here.
+  if(m_rtProperties.maxRayRecursionDepth <= 1)
+  {
+    throw std::runtime_error("Device fails to support ray recursion (m_rtProperties.maxRayRecursionDepth <= 1)");
+  }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -718,6 +724,7 @@ void HelloVulkan::createRtPipeline()
   {
     eRaygen,
     eMiss,
+    eMiss2,
     eClosestHit,
     eShaderGroupCount
   };
@@ -734,6 +741,10 @@ void HelloVulkan::createRtPipeline()
   stage.module = nvvk::createShaderModule(m_device, nvh::loadFile("spv/raytrace.rmiss.spv", true, defaultSearchPaths, true));
   stage.stage   = VK_SHADER_STAGE_MISS_BIT_KHR;
   stages[eMiss] = stage;
+  // The second miss shader is invoked when a shadow ray misses the geometry. It simply indicates that no occlusion has been found
+  stage.module   = nvvk::createShaderModule(m_device, nvh::loadFile("spv/raytraceShadow.rmiss.spv", true, defaultSearchPaths, true));
+  stage.stage    = VK_SHADER_STAGE_MISS_BIT_KHR;
+  stages[eMiss2] = stage;
   // Hit Group - Closest Hit
   stage.module = nvvk::createShaderModule(m_device, nvh::loadFile("spv/raytrace.rchit.spv", true, defaultSearchPaths, true));
   stage.stage         = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
@@ -754,6 +765,11 @@ void HelloVulkan::createRtPipeline()
   // Miss
   group.type          = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
   group.generalShader = eMiss;
+  m_rtShaderGroups.push_back(group);
+
+  // Shadow Miss
+  group.type          = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+  group.generalShader = eMiss2;
   m_rtShaderGroups.push_back(group);
 
   // closest hit shader
@@ -788,7 +804,11 @@ void HelloVulkan::createRtPipeline()
   rayPipelineInfo.groupCount = static_cast<uint32_t>(m_rtShaderGroups.size());
   rayPipelineInfo.pGroups    = m_rtShaderGroups.data();
 
-  rayPipelineInfo.maxPipelineRayRecursionDepth = 1;  // Ray depth
+  // The ray tracing process can shoot rays from the camera, and a shadow ray can be shot from the
+  // hit points of the camera rays, hence a recursion level of 2. This number should be kept as low
+  // as possible for performance reasons. Even recursive ray tracing should be flattened into a loop
+  // in the ray generation to avoid deep recursion.
+  rayPipelineInfo.maxPipelineRayRecursionDepth = 2;  // Ray depth
   rayPipelineInfo.layout                       = m_rtPipelineLayout;
 
   vkCreateRayTracingPipelinesKHR(m_device, {}, {}, 1, &rayPipelineInfo, nullptr, &m_rtPipeline);
