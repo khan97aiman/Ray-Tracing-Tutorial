@@ -16,6 +16,7 @@ layout(buffer_reference, scalar) buffer Indices {ivec3 i[]; }; // Triangle indic
 layout(buffer_reference, scalar) buffer Materials {WaveFrontMaterial m[]; }; // Array of all materials on an object
 layout(buffer_reference, scalar) buffer MatIndices {int i[]; }; // Material ID for each triangle
 layout(set = 1, binding = eObjDescs, scalar) buffer ObjDesc_ { ObjDesc i[]; } objDesc;
+layout(set = 1, binding = eTextures) uniform sampler2D textureSamplers[];
 
 layout(push_constant) uniform _PushConstantRay { PushConstantRay pcRay; };
 
@@ -66,6 +67,21 @@ void main()
         L = normalize(pcRay.lightPosition);
     }
 
-    float dotNL = max(dot(nrm, L), 0.2);
-    prd.hitValue = vec3(dotNL);
+    // Material of the object
+    int               matIdx = matIndices.i[gl_PrimitiveID];
+    WaveFrontMaterial mat    = materials.m[matIdx];
+
+    // Diffuse
+    vec3 diffuse = computeDiffuse(mat, L, nrm);
+    if(mat.textureId >= 0)
+    {
+        uint txtId = mat.textureId + objDesc.i[gl_InstanceCustomIndexEXT].txtOffset;
+        vec2 texCoord = v0.texCoord * barycentrics.x + v1.texCoord * barycentrics.y + v2.texCoord * barycentrics.z;
+        diffuse *= texture(textureSamplers[nonuniformEXT(txtId)], texCoord).xyz;
+    }
+  
+    // Specular
+    vec3 specular = computeSpecular(mat, gl_WorldRayDirectionEXT, L, nrm);
+
+    prd.hitValue = vec3(lightIntensity * (diffuse + specular));
 }
