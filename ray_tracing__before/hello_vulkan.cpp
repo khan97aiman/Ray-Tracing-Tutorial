@@ -677,8 +677,10 @@ void HelloVulkan::createTopLevelAS()
 
 void HelloVulkan::createRtDescriptorSet()
 {
+  // Top-level acceleration structure, usable by both the ray generation and the closest hit (to shoot shadow rays)
   m_rtDescSetLayoutBind.addBinding(RtxBindings::eTlas, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1,
-                                   VK_SHADER_STAGE_RAYGEN_BIT_KHR);  // TLAS
+                                   VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);  // TLAS
+  
   m_rtDescSetLayoutBind.addBinding(RtxBindings::eOutImage, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1,
                                    VK_SHADER_STAGE_RAYGEN_BIT_KHR);  // Output image
 
@@ -824,7 +826,7 @@ void HelloVulkan::createRtPipeline()
 //
 void HelloVulkan::createRtShaderBindingTable() 
 {
-  uint32_t missCount{1};
+  uint32_t missCount{2};
   uint32_t hitCount{1};
   auto     handleCount = 1 + missCount + hitCount;
   uint32_t handleSize  = m_rtProperties.shaderGroupHandleSize;
