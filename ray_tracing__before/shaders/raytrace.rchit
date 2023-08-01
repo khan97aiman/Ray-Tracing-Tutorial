@@ -8,18 +8,25 @@
 
 #include "raycommon.glsl"
 #include "wavefront.glsl"
+#include "gltf.glsl"
+
+
 
 layout(location = 0) rayPayloadInEXT hitPayload prd;
-
-layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; }; // Positions of an object
-layout(buffer_reference, scalar) buffer Indices {ivec3 i[]; }; // Triangle indices
-layout(buffer_reference, scalar) buffer Materials {WaveFrontMaterial m[]; }; // Array of all materials on an object
-layout(buffer_reference, scalar) buffer MatIndices {int i[]; }; // Material ID for each triangle
-layout(set = 1, binding = eObjDescs, scalar) buffer ObjDesc_ { ObjDesc i[]; } objDesc;
-layout(set = 1, binding = eTextures) uniform sampler2D textureSamplers[];
-layout(set = 0, binding = eTlas) uniform accelerationStructureEXT topLevelAS;
 layout(location = 1) rayPayloadEXT bool isShadowed;
 
+
+layout(set = 0, binding = eTlas ) uniform accelerationStructureEXT topLevelAS;
+layout(set = 0, binding = ePrimLookup) readonly buffer _InstanceInfo {PrimMeshInfo primInfo[];};
+
+layout(buffer_reference, scalar) readonly buffer Vertices  { vec3 v[]; }; // Positions of an object
+layout(buffer_reference, scalar) readonly buffer Indices   { uint i[]; }; // Triangle indices
+layout(buffer_reference, scalar) readonly buffer Normals   { vec3 n[]; }; // Triangle normals
+layout(buffer_reference, scalar) readonly buffer TexCoords { vec2 t[]; }; // Texture Coordinates
+layout(buffer_reference, scalar) readonly buffer Materials { GltfShadeMaterial m[]; };  // Material ID for each triangle
+
+layout(set = 1, binding = eSceneDesc ) readonly buffer SceneDesc_ { SceneDesc sceneDesc; };
+layout(set = 1, binding = eTextures) uniform sampler2D texturesMap[]; // all textures
 
 layout(push_constant) uniform _PushConstantRay { PushConstantRay pcRay; };
 
@@ -27,30 +34,50 @@ hitAttributeEXT vec3 attribs;
 
 void main()
 {
-    // Object data
-    ObjDesc    objResource = objDesc.i[gl_InstanceCustomIndexEXT];
-    MatIndices matIndices  = MatIndices(objResource.materialIndexAddress);
-    Materials  materials   = Materials(objResource.materialAddress);
-    Indices    indices     = Indices(objResource.indexAddress);
-    Vertices   vertices    = Vertices(objResource.vertexAddress);
+    // Retrieve the Primitive mesh buffer information
+    PrimMeshInfo pinfo = primInfo[gl_InstanceCustomIndexEXT];
+
+    // Getting the 'first index' for this mesh (offset of the mesh + offset of the triangle)
+    uint indexOffset  = pinfo.indexOffset + (3 * gl_PrimitiveID);
+    uint vertexOffset = pinfo.vertexOffset;           // Vertex offset as defined in glTF
+    uint matIndex     = max(0, pinfo.materialIndex);  // material of primitive mesh
+
+    Materials gltfMat   = Materials(sceneDesc.materialAddress);
+    Vertices  vertices  = Vertices(sceneDesc.vertexAddress);
+    Indices   indices   = Indices(sceneDesc.indexAddress);
+    Normals   normals   = Normals(sceneDesc.normalAddress);
+    TexCoords texCoords = TexCoords(sceneDesc.uvAddress);
+    Materials materials = Materials(sceneDesc.materialAddress);
   
-    // Indices of the triangle
-    ivec3 ind = indices.i[gl_PrimitiveID];
-  
+    // Getting the 3 indices of the triangle (local)
+    ivec3 triangleIndex = ivec3(indices.i[indexOffset + 0], indices.i[indexOffset + 1], indices.i[indexOffset + 2]);
+    triangleIndex += ivec3(vertexOffset);  // (global)
+
+
     // Vertex of the triangle
-    Vertex v0 = vertices.v[ind.x];
-    Vertex v1 = vertices.v[ind.y];
-    Vertex v2 = vertices.v[ind.z];
-  
+    const vec3 pos0           = vertices.v[triangleIndex.x];
+    const vec3 pos1           = vertices.v[triangleIndex.y];
+    const vec3 pos2           = vertices.v[triangleIndex.z];
+    
     const vec3 barycentrics = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
 
     // Computing the coordinates of the hit position
-    const vec3 pos      = v0.pos * barycentrics.x + v1.pos * barycentrics.y + v2.pos * barycentrics.z;
-    const vec3 worldPos = vec3(gl_ObjectToWorldEXT * vec4(pos, 1.0));  // Transforming the position to world space
+    const vec3 position      = pos0 * barycentrics.x + pos1 * barycentrics.y + pos2 * barycentrics.z;
+    const vec3 world_position = vec3(gl_ObjectToWorldEXT * vec4(position, 1.0));  // Transforming the position to world space
 
     // Computing the normal at hit position
-    const vec3 nrm      = v0.nrm * barycentrics.x + v1.nrm * barycentrics.y + v2.nrm * barycentrics.z;
-    const vec3 worldNrm = normalize(vec3(nrm * gl_WorldToObjectEXT));  // Transforming the normal to world space
+    const vec3 nrm0         = normals.n[triangleIndex.x];
+    const vec3 nrm1         = normals.n[triangleIndex.y];
+    const vec3 nrm2         = normals.n[triangleIndex.z];
+    const vec3 nrm          = normalize(nrm0 * barycentrics.x + nrm1 * barycentrics.y + nrm2 * barycentrics.z);
+    const vec3 world_normal = normalize(vec3(nrm * gl_WorldToObjectEXT));
+    const vec3 geom_normal  = normalize(cross(pos1 - pos0, pos2 - pos0));
+    
+    // TexCoord
+    const vec2 uv0       = texCoords.t[triangleIndex.x];
+    const vec2 uv1       = texCoords.t[triangleIndex.y];
+    const vec2 uv2       = texCoords.t[triangleIndex.z];
+    const vec2 texcoord0 = uv0 * barycentrics.x + uv1 * barycentrics.y + uv2 * barycentrics.z;
 
     // Vector toward the light
     vec3  L;
@@ -60,7 +87,7 @@ void main()
     // Point light
     if(pcRay.lightType == 0)
     {
-        vec3 lDir      = pcRay.lightPosition - worldPos;
+        vec3 lDir      = pcRay.lightPosition - world_position;
         lightDistance  = length(lDir);
         lightIntensity = pcRay.lightIntensity / (lightDistance * lightDistance);
         L              = normalize(lDir);
@@ -71,24 +98,22 @@ void main()
     }
 
     // Material of the object
-    int               matIdx = matIndices.i[gl_PrimitiveID];
-    WaveFrontMaterial mat    = materials.m[matIdx];
+    GltfShadeMaterial mat = materials.m[matIndex];
 
     // Diffuse
-    vec3 diffuse = computeDiffuse(mat, L, nrm);
-    if(mat.textureId >= 0)
+    vec3 diffuse = computeDiffuse(mat, L, world_normal);
+    if(mat.pbrBaseColorTexture > -1)
     {
-        uint txtId = mat.textureId + objDesc.i[gl_InstanceCustomIndexEXT].txtOffset;
-        vec2 texCoord = v0.texCoord * barycentrics.x + v1.texCoord * barycentrics.y + v2.texCoord * barycentrics.z;
-        diffuse *= texture(textureSamplers[nonuniformEXT(txtId)], texCoord).xyz;
+        uint txtId = mat.pbrBaseColorTexture;
+        diffuse *= texture(texturesMap[nonuniformEXT(txtId)], texcoord0).xyz;
     }
-  
+
     // Specular
     vec3  specular    = vec3(0);
     float attenuation = 1;
 
     // Tracing shadow ray only if the light is visible from the surface
-    if(dot(nrm, L) > 0)
+    if(dot(world_normal, L) > 0)
     {
         float tMin   = 0.001;
         float tMax   = lightDistance;
@@ -116,7 +141,7 @@ void main()
         else
         {
             // Specular
-            specular = computeSpecular(mat, gl_WorldRayDirectionEXT, L, nrm);
+            specular = computeSpecular(mat, gl_WorldRayDirectionEXT, L, world_normal);
         }
     }
     prd.hitValue = vec3(lightIntensity * attenuation * (diffuse + specular));

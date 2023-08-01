@@ -25,6 +25,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
 #include "wavefront.glsl"
+#include "gltf.glsl"
 
 layout(binding = 0) uniform _GlobalUniforms
 {

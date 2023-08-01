@@ -28,6 +28,7 @@
 
 // #VKRay
 #include "nvvk/raytraceKHR_vk.hpp"
+#include <nvh/gltfscene.hpp>
 
 //--------------------------------------------------------------------------------------------------
 // Simple rasterizer of OBJ objects
@@ -42,11 +43,10 @@ public:
   void setup(const VkInstance& instance, const VkDevice& device, const VkPhysicalDevice& physicalDevice, uint32_t queueFamily) override;
   void createDescriptorSetLayout();
   void createGraphicsPipeline();
-  void loadModel(const std::string& filename, nvmath::mat4f transform = nvmath::mat4f(1));
+  void loadScene(const std::string& filename, nvmath::mat4f transform = nvmath::mat4f(1));
   void updateDescriptorSet();
   void createUniformBuffer();
-  void createObjDescriptionBuffer();
-  void createTextureImages(const VkCommandBuffer& cmdBuf, const std::vector<std::string>& textures);
+  void createTextureImages(const VkCommandBuffer& cmdBuf, tinygltf::Model& gltfModel);
   void updateUniformBuffer(const VkCommandBuffer& cmdBuf);
   void onResize(int /*w*/, int /*h*/) override;
   void destroyResources();
@@ -79,11 +79,14 @@ public:
       0                   // light type
   };
 
-  // Array of objects and instances in the scene
-  std::vector<ObjModel>    m_objModel;   // Model on host
-  std::vector<ObjDesc>     m_objDesc;    // Model description for device access
-  std::vector<ObjInstance> m_instances;  // Scene model instances
-
+  nvh::GltfScene m_gltfScene;
+  nvvk::Buffer   m_vertexBuffer;
+  nvvk::Buffer   m_normalBuffer;
+  nvvk::Buffer   m_uvBuffer;
+  nvvk::Buffer   m_indexBuffer;
+  nvvk::Buffer   m_materialBuffer;
+  nvvk::Buffer   m_primInfo;
+  nvvk::Buffer   m_sceneDesc;
 
   // Graphic pipeline
   VkPipelineLayout            m_pipelineLayout;
@@ -125,7 +128,7 @@ public:
 
   // #VKRay
   void initRayTracing();
-  auto objectToVkGeometryKHR(const ObjModel& model);
+  auto primitiveToVkGeometry(const nvh::GltfPrimMesh& prim);
   void createBottomLevelAS();
   void createTopLevelAS();
   void createRtDescriptorSet();

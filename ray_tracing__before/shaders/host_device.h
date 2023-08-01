@@ -42,16 +42,92 @@ using uint = unsigned int;
 
 START_BINDING(SceneBindings)
   eGlobals  = 0,  // Global uniform containing camera matrices
-  eObjDescs = 1,  // Access to the object descriptions
+  eSceneDesc = 1,  // Access to the scene buffers
   eTextures = 2   // Access to textures
 END_BINDING();
 
 START_BINDING(RtxBindings)
   eTlas     = 0,  // Top-level acceleration structure
-  eOutImage = 1   // Ray tracer output image
+  eOutImage = 1,   // Ray tracer output image
+  ePrimLookup = 2   // Lookup of objects
 END_BINDING();
 // clang-format on
 
+// Structure used for retrieving the primitive information in the closest hit
+struct PrimMeshInfo
+{
+	uint indexOffset;
+	uint vertexOffset;
+	int  materialIndex;
+};
+
+// Scene buffer addresses
+struct SceneDesc
+{
+	uint64_t vertexAddress;    // Address of the Vertex buffer
+	uint64_t normalAddress;    // Address of the Normal buffer
+	uint64_t uvAddress;        // Address of the texture coordinates buffer
+	uint64_t indexAddress;     // Address of the triangle indices buffer
+	uint64_t materialAddress;  // Address of the Materials buffer (GltfShadeMaterial)
+	uint64_t primInfoAddress;  // Address of the mesh primitives buffer (PrimMeshInfo)
+};
+
+struct GltfShadeMaterial
+{
+	vec4 pbrBaseColorFactor;
+	vec3 emissiveFactor;
+	int  pbrBaseColorTexture;
+	/*// 0
+	vec4 pbrBaseColorFactor;
+	// 4
+	int   pbrBaseColorTexture;
+	float pbrMetallicFactor;
+	float pbrRoughnessFactor;
+	int   pbrMetallicRoughnessTexture;
+	// 8
+	vec4 khrDiffuseFactor;  // KHR_materials_pbrSpecularGlossiness
+	vec3 khrSpecularFactor;
+	int  khrDiffuseTexture;
+	// 16
+	int   shadingModel;  // 0: metallic-roughness, 1: specular-glossiness
+	float khrGlossinessFactor;
+	int   khrSpecularGlossinessTexture;
+	int   emissiveTexture;
+	// 20
+	vec3 emissiveFactor;
+	int  alphaMode;
+	// 24
+	float alphaCutoff;
+	int   doubleSided;
+	int   normalTexture;
+	float normalTextureScale;
+	// 28
+	mat4 uvTransform;
+	// 32
+	int unlit;
+
+	float transmissionFactor;
+	int   transmissionTexture;
+
+	float ior;
+	// 36
+	vec3  anisotropyDirection;
+	float anisotropy;
+	// 40
+	vec3  attenuationColor;
+	float thicknessFactor;  // 44
+	int   thicknessTexture;
+	float attenuationDistance;
+	// --
+	float clearcoatFactor;
+	float clearcoatRoughness;
+	// 48
+	int  clearcoatTexture;
+	int  clearcoatRoughnessTexture;
+	uint sheen;
+	int  pad;
+	// 52*/
+};
 
 // Information of a obj model when referenced in a shader
 struct ObjDesc
@@ -79,6 +155,7 @@ struct PushConstantRaster
   uint  objIndex;
   float lightIntensity;
   int   lightType;
+  int   materialId;
 };
 
 
