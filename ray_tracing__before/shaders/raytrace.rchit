@@ -144,5 +144,30 @@ void main()
             specular = computeSpecular(mat, gl_WorldRayDirectionEXT, L, world_normal);
         }
     }
-    prd.hitValue = vec3(lightIntensity * attenuation * (diffuse + specular));
+
+  // Reflection
+  // At the end of the closest hit shader, before setting prd.hitValue, we need to shoot a ray if the material is reflective.
+  if(mat.illum == 3 && prd.depth < 10)
+  {
+    vec3 origin   = worldPos;
+    vec3 rayDir   = reflect(gl_WorldRayDirectionEXT, normal);
+    prd.attenuation *= mat.specular;
+
+    prd.depth++;
+    traceRayEXT(topLevelAS,         // acceleration structure
+            gl_RayFlagsNoneEXT,  // rayFlags
+            0xFF,               // cullMask
+            0,                  // sbtRecordOffset
+            0,                  // sbtRecordStride
+            0,                  // missIndex
+            origin,             // ray origin
+            0.1,                // ray min range
+            rayDir,             // ray direction
+            100000.0,           // ray max range
+            0                   // payload (location = 0)
+    );
+    prd.depth--;
+
+    //The calculated hitValue needs to be accumulated, since the payload is global for the entire execution from raygen
+    prd.hitValue += vec3(lightIntensity * attenuation * (diffuse + specular));
 }

@@ -27,6 +27,12 @@ void main()
     float tMin     = 0.001;
     float tMax     = 10000.0;
 
+    // initializing all payload values before calling traceRayEXT
+
+    prd.depth       = 0;
+    prd.hitValue    = vec3(0);
+    prd.attenuation = vec3(1.f, 1.f, 1.f);
+
     traceRayEXT(topLevelAS, // acceleration structure
         rayFlags,           // rayFlags
         0xFF,               // cullMask

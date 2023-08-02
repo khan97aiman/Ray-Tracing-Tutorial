@@ -787,7 +787,7 @@ void HelloVulkan::createRtPipeline()
   // hit points of the camera rays, hence a recursion level of 2. This number should be kept as low
   // as possible for performance reasons. Even recursive ray tracing should be flattened into a loop
   // in the ray generation to avoid deep recursion.
-  rayPipelineInfo.maxPipelineRayRecursionDepth = 2;  // Ray depth
+  rayPipelineInfo.maxPipelineRayRecursionDepth = std::max(10u, m_rtProperties.maxRayRecursionDepth);  // Ray depth
   rayPipelineInfo.layout                       = m_rtPipelineLayout;
 
   vkCreateRayTracingPipelinesKHR(m_device, {}, {}, 1, &rayPipelineInfo, nullptr, &m_rtPipeline);
