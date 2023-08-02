@@ -44,12 +44,6 @@ layout(location = 4) in vec2 i_texCoord;
 // Outgoing
 layout(location = 0) out vec4 o_color;
 
-
-layout(buffer_reference, scalar) buffer Vertices {Vertex v[]; }; // Positions of an object
-layout(buffer_reference, scalar) buffer Indices {uint i[]; }; // Triangle indices
-layout(buffer_reference, scalar) buffer Materials {WaveFrontMaterial m[]; }; // Array of all materials on an object
-layout(buffer_reference, scalar) buffer MatIndices {int i[]; }; // Material ID for each triangle
-
 // Buffers
 layout(buffer_reference, scalar) buffer  GltfMaterial { GltfShadeMaterial m[]; };
 layout(set = 0, binding = eSceneDesc ) readonly buffer SceneDesc_ { SceneDesc sceneDesc; } ;
