@@ -73,7 +73,7 @@ public:
   // Information pushed at each draw call
   PushConstantRaster m_pcRaster{
       {1},                // Identity matrix
-      {10.f, 15.f, 8.f},  // light position
+      {0.f, 4.5f, 0.f},  // light position
       0,                  // instance Id
       100.f,              // light intensity
       0                   // light type
@@ -97,7 +97,6 @@ public:
   VkDescriptorSet             m_descSet;
 
   nvvk::Buffer m_bGlobals;  // Device-Host of the camera matrices
-  nvvk::Buffer m_bObjDesc;  // Device buffer of the OBJ descriptions
 
   std::vector<nvvk::Texture> m_textures;  // vector of all textures of the scene
 

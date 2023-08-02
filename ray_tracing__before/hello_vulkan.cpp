@@ -163,21 +163,18 @@ void HelloVulkan::createGraphicsPipeline()
   vkCreatePipelineLayout(m_device, &createInfo, nullptr, &m_pipelineLayout);
 
 
-  // Creating the Pipeline
+   // Creating the Pipeline
   std::vector<std::string>                paths = defaultSearchPaths;
   nvvk::GraphicsPipelineGeneratorCombined gpb(m_device, m_pipelineLayout, m_offscreenRenderPass);
   gpb.depthStencilState.depthTestEnable = true;
   gpb.addShader(nvh::loadFile("spv/vert_shader.vert.spv", true, paths, true), VK_SHADER_STAGE_VERTEX_BIT);
   gpb.addShader(nvh::loadFile("spv/frag_shader.frag.spv", true, paths, true), VK_SHADER_STAGE_FRAGMENT_BIT);
-
-  gpb.addBindingDescriptions({{0, sizeof(nvmath::vec3f)}, {1, sizeof(nvmath::vec3f)}, {2, sizeof(nvmath::vec3f)}, {3, sizeof(nvmath::vec2f)}});
+  gpb.addBindingDescriptions({{0, sizeof(nvmath::vec3f)}, {1, sizeof(nvmath::vec3f)}, {2, sizeof(nvmath::vec2f)}});
   gpb.addAttributeDescriptions({
       {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},  // Position
       {1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0},  // Normal
-      {2, 2, VK_FORMAT_R32G32B32_SFLOAT, 0},  // Color
-      {3, 3, VK_FORMAT_R32G32_SFLOAT, 0},     // Texcoord0
+      {2, 2, VK_FORMAT_R32G32_SFLOAT, 0},     // Texcoord0
   });
-
   m_graphicsPipeline = gpb.createPipeline();
   m_debug.setObjectName(m_graphicsPipeline, "Graphics");
 }
@@ -332,7 +329,6 @@ void HelloVulkan::destroyResources()
   vkDestroyDescriptorSetLayout(m_device, m_descSetLayout, nullptr);
 
   m_alloc.destroy(m_bGlobals);
-  m_alloc.destroy(m_bObjDesc);
 
   m_alloc.destroy(m_vertexBuffer);
   m_alloc.destroy(m_normalBuffer);
