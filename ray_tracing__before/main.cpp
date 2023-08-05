@@ -158,7 +158,7 @@ int main(int argc, char** argv)
   helloVk.initGUI(0);  // Using sub-pass 0
 
   // Creation of the example
-  helloVk.loadScene(nvh::findFile("media/scenes/cornellBox.gltf", defaultSearchPaths, true));
+  helloVk.loadScene(nvh::findFile("media/scenes/cornellBoxLucy.gltf", defaultSearchPaths, true));
 
   helloVk.createOffscreenRender();
   helloVk.createDescriptorSetLayout();

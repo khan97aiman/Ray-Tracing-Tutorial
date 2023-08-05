@@ -74,10 +74,7 @@ struct SceneDesc
 
 struct GltfShadeMaterial
 {
-	vec4 pbrBaseColorFactor;
-	vec3 emissiveFactor;
-	int  pbrBaseColorTexture;
-	/*// 0
+	// 0
 	vec4 pbrBaseColorFactor;
 	// 4
 	int   pbrBaseColorTexture;
@@ -126,7 +123,7 @@ struct GltfShadeMaterial
 	int  clearcoatRoughnessTexture;
 	uint sheen;
 	int  pad;
-	// 52*/
+	// 52
 };
 
 // Information of a obj model when referenced in a shader

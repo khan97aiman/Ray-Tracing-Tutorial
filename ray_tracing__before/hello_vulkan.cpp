@@ -211,11 +211,47 @@ void HelloVulkan::loadScene(const std::string& filename, nvmath::mat4f transform
                                         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
                                             | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
 
-  // Copying all materials, only the elements we need
+  // Copying all materials
   std::vector<GltfShadeMaterial> shadeMaterials;
   for(auto& m : m_gltfScene.m_materials)
   {
-    shadeMaterials.emplace_back(GltfShadeMaterial{m.baseColorFactor, m.emissiveFactor, m.baseColorTexture});
+    GltfShadeMaterial smat{};
+    smat.pbrBaseColorFactor           = m.baseColorFactor;
+    smat.pbrBaseColorTexture          = m.baseColorTexture;
+    smat.pbrMetallicFactor            = m.metallicFactor;
+    smat.pbrRoughnessFactor           = m.roughnessFactor;
+    smat.pbrMetallicRoughnessTexture  = m.metallicRoughnessTexture;
+    smat.khrDiffuseFactor             = m.specularGlossiness.diffuseFactor;
+    smat.khrSpecularFactor            = m.specularGlossiness.specularFactor;
+    smat.khrDiffuseTexture            = m.specularGlossiness.diffuseTexture;
+    smat.khrGlossinessFactor          = m.specularGlossiness.glossinessFactor;
+    smat.khrSpecularGlossinessTexture = m.specularGlossiness.specularGlossinessTexture;
+    smat.shadingModel                 = m.shadingModel;
+    smat.emissiveTexture              = m.emissiveTexture;
+    smat.emissiveFactor               = m.emissiveFactor;
+    smat.alphaMode                    = m.alphaMode;
+    smat.alphaCutoff                  = m.alphaCutoff;
+    smat.doubleSided                  = m.doubleSided;
+    smat.normalTexture                = m.normalTexture;
+    smat.normalTextureScale           = m.normalTextureScale;
+    smat.uvTransform                  = nvmath::mat4f(m.textureTransform.uvTransform);
+    smat.unlit                        = m.unlit.active;
+    smat.transmissionFactor           = m.transmission.factor;
+    smat.transmissionTexture          = m.transmission.texture;
+    smat.anisotropy                   = m.anisotropy.factor;
+    smat.anisotropyDirection          = m.anisotropy.direction;
+    smat.ior                          = m.ior.ior;
+    smat.attenuationColor             = m.volume.attenuationColor;
+    smat.thicknessFactor              = m.volume.thicknessFactor;
+    smat.thicknessTexture             = m.volume.thicknessTexture;
+    smat.attenuationDistance          = m.volume.attenuationDistance;
+    smat.clearcoatFactor              = m.clearcoat.factor;
+    smat.clearcoatRoughness           = m.clearcoat.roughnessFactor;
+    smat.clearcoatTexture             = m.clearcoat.texture;
+    smat.clearcoatRoughnessTexture    = m.clearcoat.roughnessTexture;
+    //smat.sheen                        = packUnorm4x8(vec4(m.sheen.colorFactor, m.sheen.roughnessFactor));
+
+    shadeMaterials.emplace_back(smat);
   }
   m_materialBuffer = m_alloc.createBuffer(cmdBuf, shadeMaterials,
                                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
@@ -787,7 +823,7 @@ void HelloVulkan::createRtPipeline()
   // hit points of the camera rays, hence a recursion level of 2. This number should be kept as low
   // as possible for performance reasons. Even recursive ray tracing should be flattened into a loop
   // in the ray generation to avoid deep recursion.
-  rayPipelineInfo.maxPipelineRayRecursionDepth = 2;  // Ray depth
+  rayPipelineInfo.maxPipelineRayRecursionDepth = 2; 
   rayPipelineInfo.layout                       = m_rtPipelineLayout;
 
   vkCreateRayTracingPipelinesKHR(m_device, {}, {}, 1, &rayPipelineInfo, nullptr, &m_rtPipeline);

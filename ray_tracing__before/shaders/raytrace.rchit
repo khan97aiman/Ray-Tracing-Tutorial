@@ -11,7 +11,6 @@
 #include "gltf.glsl"
 
 
-
 layout(location = 0) rayPayloadInEXT hitPayload prd;
 layout(location = 1) rayPayloadEXT bool isShadowed;
 
@@ -144,5 +143,25 @@ void main()
             specular = computeSpecular(mat, gl_WorldRayDirectionEXT, L, world_normal);
         }
     }
-    prd.hitValue = vec3(lightIntensity * attenuation * (diffuse + specular));
+
+  // Reflection
+  // We no longer need to shoot rays from the closest hit shader
+  if(mat.pbrMetallicFactor > 0.0f)
+  {
+    vec3 origin = world_position;
+    vec3 rayDir = reflect(gl_WorldRayDirectionEXT, world_normal);
+    //prd.attenuation *= mat.khrSpecularFactor;
+    prd.done      = 0;
+    prd.rayOrigin = origin;
+    prd.rayDir    = rayDir;
+  }
+  else 
+  {
+    // no more reflections
+    prd.done      = 1;
+    prd.rayOrigin = vec3(0.0, 0.0, 0.0);
+    prd.rayDir    = vec3(0.0, 0.0, 0.0);
+  }
+
+  prd.hitValue = vec3(lightIntensity * attenuation * (diffuse + specular));
 }
