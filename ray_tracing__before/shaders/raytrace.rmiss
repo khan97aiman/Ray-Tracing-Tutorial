@@ -15,5 +15,6 @@ layout(push_constant) uniform _PushConstantRay
 
 void main()
 {
-    prd.hitValue = pcRay.clearColor.xyz * 0.8 * prd.attenuation;
+    // Since the ray generation shader now handles attenuation, we no longer need to attenuate the value returned in the miss shader:
+    prd.hitValue = pcRay.clearColor.xyz * 0.8;
 }

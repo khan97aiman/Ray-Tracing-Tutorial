@@ -11,7 +11,6 @@
 #include "gltf.glsl"
 
 
-
 layout(location = 0) rayPayloadInEXT hitPayload prd;
 layout(location = 1) rayPayloadEXT bool isShadowed;
 
@@ -146,28 +145,23 @@ void main()
     }
 
   // Reflection
-  // At the end of the closest hit shader, before setting prd.hitValue, we need to shoot a ray if the material is reflective.
-  if(mat.illum == 3 && prd.depth < 10)
+  // We no longer need to shoot rays from the closest hit shader
+  if(mat.pbrMetallicFactor > 0.0f)
   {
-    vec3 origin   = worldPos;
-    vec3 rayDir   = reflect(gl_WorldRayDirectionEXT, normal);
-    prd.attenuation *= mat.specular;
+    vec3 origin = world_position;
+    vec3 rayDir = reflect(gl_WorldRayDirectionEXT, world_normal);
+    //prd.attenuation *= mat.khrSpecularFactor;
+    prd.done      = 0;
+    prd.rayOrigin = origin;
+    prd.rayDir    = rayDir;
+  }
+  else 
+  {
+    // no more reflections
+    prd.done      = 1;
+    prd.rayOrigin = vec3(0.0, 0.0, 0.0);
+    prd.rayDir    = vec3(0.0, 0.0, 0.0);
+  }
 
-    prd.depth++;
-    traceRayEXT(topLevelAS,         // acceleration structure
-            gl_RayFlagsNoneEXT,  // rayFlags
-            0xFF,               // cullMask
-            0,                  // sbtRecordOffset
-            0,                  // sbtRecordStride
-            0,                  // missIndex
-            origin,             // ray origin
-            0.1,                // ray min range
-            rayDir,             // ray direction
-            100000.0,           // ray max range
-            0                   // payload (location = 0)
-    );
-    prd.depth--;
-
-    //The calculated hitValue needs to be accumulated, since the payload is global for the entire execution from raygen
-    prd.hitValue += vec3(lightIntensity * attenuation * (diffuse + specular));
+  prd.hitValue = vec3(lightIntensity * attenuation * (diffuse + specular));
 }
