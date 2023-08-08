@@ -150,7 +150,7 @@ void main()
   {
     vec3 origin = world_position;
     vec3 rayDir = reflect(gl_WorldRayDirectionEXT, world_normal);
-    //prd.attenuation *= mat.khrSpecularFactor;
+    prd.attenuation *= mat.khrSpecularFactor;
     prd.done      = 0;
     prd.rayOrigin = origin;
     prd.rayDir    = rayDir;

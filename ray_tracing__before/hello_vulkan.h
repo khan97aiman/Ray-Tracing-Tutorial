@@ -75,7 +75,7 @@ public:
       {1},                // Identity matrix
       {0.f, 4.5f, 0.f},  // light position
       0,                  // instance Id
-      100.f,              // light intensity
+      15,              // light intensity
       0                   // light type
   };
 
