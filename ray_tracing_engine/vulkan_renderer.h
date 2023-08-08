@@ -37,7 +37,7 @@
 // - Rendering is done in an offscreen framebuffer
 // - The image of the framebuffer is displayed in post-process in a full-screen quad
 //
-class HelloVulkan : public nvvkhl::AppBaseVk
+class VulkanRenderer : public nvvkhl::AppBaseVk
 {
 public:
   void setup(const VkInstance& instance, const VkDevice& device, const VkPhysicalDevice& physicalDevice, uint32_t queueFamily) override;

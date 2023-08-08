@@ -28,7 +28,7 @@
 #include "backends/imgui_impl_glfw.h"
 #include "imgui.h"
 
-#include "hello_vulkan.h"
+#include "vulkan_renderer.h"
 #include "imgui/imgui_camera_widget.h"
 #include "nvh/cameramanipulator.hpp"
 #include "nvh/fileoperations.hpp"
@@ -52,7 +52,7 @@ static void onErrorCallback(int error, const char* description)
 }
 
 // Extra UI
-void renderUI(HelloVulkan& helloVk)
+void renderUI(VulkanRenderer& helloVk)
 {
   ImGuiH::CameraWidget();
   if(ImGui::CollapsingHeader("Light"))
@@ -142,7 +142,7 @@ int main(int argc, char** argv)
   vkctx.initDevice(compatibleDevices[0], contextInfo);
 
   // Create example
-  HelloVulkan helloVk;
+  VulkanRenderer helloVk;
 
   // Window need to be opened to get the surface on which to draw
   const VkSurfaceKHR surface = helloVk.getVkSurface(vkctx.m_instance, window);
