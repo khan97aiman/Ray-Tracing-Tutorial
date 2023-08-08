@@ -41,7 +41,8 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/media DESTINATION ${OUTPUT_PATH})
 
 #--------------------------------------------------------------------------------------------------
 # Sub examples
-add_subdirectory(ray_tracing__before) 
+add_subdirectory(ray_tracing_engine) 
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT vk_ray_tracing_engine_KHR)
 #--------------------------------------------------------------------------------------------------
 # Install - copying the media directory
 install(DIRECTORY "media" 
