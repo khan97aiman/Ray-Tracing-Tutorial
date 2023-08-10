@@ -158,7 +158,7 @@ int main(int argc, char** argv)
   helloVk.initGUI(0);  // Using sub-pass 0
 
   // Creation of the example
-  helloVk.loadScene(nvh::findFile("media/scenes/cornellBoxLucy.gltf", defaultSearchPaths, true));
+  helloVk.loadScene(nvh::findFile("media/scenes/cornellBox.gltf", defaultSearchPaths, true));
 
   helloVk.createOffscreenRender();
   helloVk.createDescriptorSetLayout();
@@ -178,7 +178,7 @@ int main(int argc, char** argv)
   helloVk.createPostPipeline();
   helloVk.updatePostDescriptorSet();
 
-  nvmath::vec4f clearColor = nvmath::vec4f(1, 1, 1, 1.00f);
+  nvmath::vec4f clearColor   = nvmath::vec4f(0.006, 0.006, 0.006, 1.00f);
   bool          useRaytracer = true;
 
 
