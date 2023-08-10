@@ -163,5 +163,5 @@ void main()
     prd.rayDir    = vec3(0.0, 0.0, 0.0);
   }
 
-  prd.hitValue = vec3(lightIntensity * attenuation * (diffuse + specular));
+  prd.hitValue = vec3(lightIntensity * attenuation * (diffuse + specular)) + mat.emissiveFactor;
 }
