@@ -677,7 +677,7 @@
       },
       "name": "cube_instance_material",
       "pbrMetallicRoughness": {
-        "metallicFactor": 0.0,
+        "metallicFactor": 1.0,
         "baseColorFactor": [
           1.0,
           1.0,
@@ -695,7 +695,7 @@
       },
       "name": "cube_instance_2_material",
       "pbrMetallicRoughness": {
-        "metallicFactor": 0.0,
+        "metallicFactor": 1.0,
         "baseColorFactor": [
           1.0,
           1.0,
@@ -738,7 +738,7 @@
           0.00010718735575210303,
           1.0
         ],
-        "metallicFactor": 0.0
+        "metallicFactor": 1.0
       }
     },
     {
@@ -774,7 +774,7 @@
           0.6,
           1.0
         ],
-        "metallicFactor": 0.0
+        "metallicFactor": 1.0
       }
     },
     {
@@ -813,7 +813,7 @@
           1.0
         ],
         "roughnessFactor": 0.0,
-        "metallicFactor": 0.0
+        "metallicFactor": 1.0
       }
     },
     {
