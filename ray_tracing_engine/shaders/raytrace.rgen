@@ -11,6 +11,7 @@ layout(binding = 1, set = 0, rgba32f) uniform image2D image;
 
 layout(set = 1, binding = eGlobals) uniform _GlobalUniforms { GlobalUniforms uni; };
 layout(location = 0) rayPayloadEXT hitPayload prd;
+layout(push_constant) uniform _PushConstantRay { PushConstantRay pcRay; };
 
 
 void main() 
@@ -55,7 +56,7 @@ void main()
         hitValue += prd.hitValue * prd.attenuation;
 
         prd.depth++;
-        if(prd.done == 1 || prd.depth >= 10)
+        if(prd.done == 1 || prd.depth >= pcRay.maxDepth)
             break;
 
         origin.xyz    = prd.rayOrigin;

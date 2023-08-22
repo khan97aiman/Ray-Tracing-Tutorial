@@ -64,6 +64,7 @@ void renderUI(VulkanRenderer& helloVk)
     ImGui::SliderFloat3("Position", &helloVk.m_pcRaster.lightPosition.x, -20.f, 20.f);
     ImGui::SliderFloat("Intensity", &helloVk.m_pcRaster.lightIntensity, 0.f, 150.f);
   }
+  ImGui::SliderInt("Max Depth", &helloVk.m_pcRay.maxDepth, 1, 50);
 }
 
 //////////////////////////////////////////////////////////////////////////

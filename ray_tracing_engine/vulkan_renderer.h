@@ -72,11 +72,11 @@ public:
 
   // Information pushed at each draw call
   PushConstantRaster m_pcRaster{
-      {1},                // Identity matrix
-      {1.194f, -0.276f, -5.797},  // light position
-      0,                  // instance Id
-      22.407,              // light intensity
-      0                   // light type
+      {1},                          // Identity matrix
+      {1.194f, -0.276f, -5.797},    // light position
+      0,                            // instance Id
+      22.407,                       // light intensity
+      0                             // light type
   };
 
   nvh::GltfScene m_gltfScene;
@@ -153,5 +153,5 @@ public:
   VkStridedDeviceAddressRegionKHR m_callRegion{};
 
   // Push constant for ray tracer
-  PushConstantRay m_pcRay{};
+  PushConstantRay m_pcRay{{}, {}, 0, 0, 10};
 };
